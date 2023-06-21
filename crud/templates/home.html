@@ -1,0 +1,83 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>My Website</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'home_style.css' %}" type="text/css" />
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+  </head>
+  <body>
+    <main>
+        <div class="container">  
+            <form id="contact">
+                <h3>Cadastrar Proposta</h3>
+                <h4>Por favor, preencha todos os campos</h4>
+                <div id="id_custom_fields_div">
+                </div>
+                <div id="id_value_field_div">
+                    <input placeholder="Valor da Proposta" name="value" id="value" type="number"><br>
+                </div>
+                <button id="create_btn" type="submit" class="btn btn-sm btn-success hidden" name="create_btn">Confirmar</button>
+                <div id="id_message_div">
+                </div>
+            </form>
+        </div>
+    </main>
+	<script>
+
+        //Carregar todos os campos customizados cadastrados
+        url =  "{% url 'campos' %}"
+        $.ajax({
+            dataType:'json',
+            data: {},
+            url: url,
+            success: function(data){
+                for (var field of data){
+                    input_html = `<input placeholder=${field.title} name="${field.id}" id="${field.id}" type="text"><br>`
+                    $("#id_custom_fields_div").append(input_html)
+                }
+            }
+        });
+
+        //Quando o botão de confirmar for acionado, será montado o json que será enviado para o POST da proposta
+        $('#create_btn').click(function(e){
+            e.preventDefault()
+            data = {
+                status: "0",
+                value: parseFloat($("#value").val()),
+                custom_fields: []
+            }
+            $('#id_custom_fields_div > input').each(function () { 
+                data.custom_fields.push({'field_id': this.id, 'answer': this.value})
+            });
+            
+            //Enviar json para o POST
+            $.ajax({
+                url : "{% url 'proposta' %}",
+                type : 'POST',
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                data : JSON.stringify(data),
+            })
+            .done(function(msg){
+                $('#id_message_div').empty();
+                $("#id_message_div").append(`<h4>${msg}</h4>`)
+            })
+            .fail(function(jqXHR, textStatus, msg){
+                $('#id_message_div').empty();
+                $("#id_message_div").append(`<h4>${msg}</h4>`)
+            });
+
+            $("form").trigger("reset")
+
+        });
+    </script>
+  </body>
+</html>

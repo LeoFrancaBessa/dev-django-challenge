@@ -1,0 +1,50 @@
+version: "3"
+
+services:
+  backend:
+    build:
+      context: .
+    image: backend-image
+    container_name: backend
+    hostname: backend
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    command: run_web.sh
+    stdin_open: true
+    tty: true
+    depends_on:
+      - rabbit
+    networks:
+      - shared_network
+
+  rabbit:
+    image: rabbitmq:3-management
+    container_name: rabbit
+    hostname: rabbit
+    environment:
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASSWORD=admin
+    ports:
+      - "5682:5672"
+      - "15682:15672"
+    networks:
+      - shared_network
+
+  worker:
+    image: backend-image
+    restart: on-failure
+    command: run_celery_worker.sh
+    depends_on:
+      - backend
+      - rabbit
+    networks:
+      - shared_network
+    volumes:
+      - .:/app
+
+networks:
+  shared_network:
+    driver: bridge
